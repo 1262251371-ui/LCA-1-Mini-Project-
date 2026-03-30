@@ -1,0 +1,65 @@
+// ---------------- OTP ----------------
+int generateOTP(){ return rand()%9000 + 1000; }
+int verifyOTP(const char *type){
+    int otp=generateOTP(), userOTP;
+    printf("📩 OTP sent to your %s: %d (simulation)\n", type, otp);
+    printf("Enter OTP: "); scanf("%d",&userOTP);
+    return otp==userOTP;
+}
+
+
+
+// ---------------- INDEX / BLOCK ----------------
+void addToIndex(int accNo){ FILE *fp=fopen(DATA_DIR "accounts_index.txt","a"); if(fp){fprintf(fp,"%d\n",accNo); fclose(fp);} }
+int isBlocked(int accNo){
+    FILE *fp=fopen(DATA_DIR "blocked_accounts.txt","r"); int x; if(!fp) return 0;
+    while(fscanf(fp,"%d",&x)!=EOF) if(x==accNo){ fclose(fp); return 1; }
+    fclose(fp); return 0;
+}
+void blockAccount(int accNo){ if(isBlocked(accNo)) return; FILE *fp=fopen(DATA_DIR "blocked_accounts.txt","a"); if(fp){fprintf(fp,"%d\n",accNo); fclose(fp);} }
+void unblockAccount(int accNo){
+    FILE *fp=fopen(DATA_DIR "blocked_accounts.txt","r");
+    FILE *tp=fopen(DATA_DIR "temp.txt","w"); int x; if(!fp||!tp) return;
+    while(fscanf(fp,"%d",&x)!=EOF) if(x!=accNo) fprintf(tp,"%d\n",x);
+    fclose(fp); fclose(tp); remove(DATA_DIR "blocked_accounts.txt"); rename(DATA_DIR "temp.txt", DATA_DIR "blocked_accounts.txt");
+}
+
+
+
+
+// ---------------- FRAUD RADAR ----------------
+void adminFraudRadar(){
+    FILE *fp=fopen(DATA_DIR "accounts_index.txt","r");
+    int acc; User u;
+    printf("\n🕵️ FRAUD RADAR (Heuristic)\n");
+    if(!fp){ printf("No users.\n"); return; }
+    while(fscanf(fp,"%d",&acc)!=EOF){
+        if(loadUser(acc,&u)){
+            if(u.withdrawCount > u.depositCount + 5)
+                printf("⚠️ Acc %d (%s): High withdrawal pattern\n", u.accNo, u.name);
+        }
+    }
+    fclose(fp);
+}
+
+
+
+
+// ---------------- GLOBAL FREEZE ----------------
+int isGlobalFreeze(){
+    FILE *fp=fopen(DATA_DIR "GLOBAL_FREEZE.flag","r");
+    if(fp){ fclose(fp); return 1; }
+    return 0;
+}
+void toggleGlobalFreeze(int on){
+    if(on){
+        FILE *fp=fopen(DATA_DIR "GLOBAL_FREEZE.flag","w"); if(fp) fclose(fp);
+        printf("🧊 Global freeze ENABLED.\n"); logAdminAction("Global freeze enabled");
+    } else {
+        remove(DATA_DIR "GLOBAL_FREEZE.flag");
+        printf("🔥 Global freeze DISABLED.\n"); logAdminAction("Global freeze disabled");
+    }
+}
+
+
+
